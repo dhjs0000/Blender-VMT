@@ -339,8 +339,7 @@ class BlenderVersionManager:
         with open(log_file, "w") as log:
             process = subprocess.Popen([blender_exe], stdout=log, stderr=log)
             process.wait()
-        messagebox.showinfo("信息", f"Blender 已启动。日志记录在 {log_file}")
-
+            
 if __name__ == "__main__":
     root = tk.Tk()
     app = BlenderVersionManager(root)
