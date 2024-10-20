@@ -11,39 +11,47 @@ import threading
 import shutil
 import time
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 class BlenderVersionManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Blender 版本管理器")
+        self.root.geometry("600x400")
         
         self.config_file = "config.ini"
         self.config = configparser.ConfigParser()
         self.load_config()
         
+        self.style = ttk.Style()
+        self.apply_theme(self.config.get('PREFERENCES', 'Theme', fallback='default'))
+        
         self.create_menu()
         
-        self.label = tk.Label(root, text="选择一个 Blender 版本:")
-        self.label.pack(pady=10)
+        self.label = ttk.Label(root, text="选择一个 Blender 版本:")
+        self.label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
         
-        self.tree = ttk.Treeview(root)
-        self.tree.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
-        self.tree.heading("#0", text="Blender 版本")
+        self.tree = ttk.Treeview(root, columns=("path"), show="headings")
+        self.tree.heading("path", text="路径")
+        self.tree.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         
-        self.button_launch = tk.Button(root, text="启动 Blender", command=self.launch_blender)
-        self.button_launch.pack(pady=10)
+        self.button_launch = ttk.Button(root, text="启动 Blender", command=self.launch_blender)
+        self.button_launch.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
         
-        self.button_add_version = tk.Button(root, text="添加 Blender 版本", command=self.add_blender_version)
-        self.button_add_version.pack(pady=10)
+        self.button_add_version = ttk.Button(root, text="添加 Blender 版本", command=self.add_blender_version)
+        self.button_add_version.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
         
-        self.button_edit_version = tk.Button(root, text="编辑 Blender 版本", command=self.edit_blender_version)
-        self.button_edit_version.pack(pady=10)
+        self.button_edit_version = ttk.Button(root, text="编辑 Blender 版本", command=self.edit_blender_version)
+        self.button_edit_version.grid(row=2, column=2, padx=10, pady=10, sticky="ew")
         
-        self.button_delete_version = tk.Button(root, text="删除 Blender 版本", command=self.delete_blender_version)
-        self.button_delete_version.pack(pady=10)
+        self.button_delete_version = ttk.Button(root, text="删除 Blender 版本", command=self.delete_blender_version)
+        self.button_delete_version.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
         
-        self.button_download_version = tk.Button(root, text="下载 Blender 版本", command=self.download_blender_version)
-        self.button_download_version.pack(pady=10)
+        self.button_download_version = ttk.Button(root, text="下载 Blender 版本", command=self.download_blender_version)
+        self.button_download_version.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
         
         self.populate_versions()
     
@@ -57,27 +65,71 @@ class BlenderVersionManager:
     def open_preferences(self):
         pref_window = tk.Toplevel(self.root)
         pref_window.title("偏好设置")
+        pref_window.geometry("500x400")
+        
+        notebook = ttk.Notebook(pref_window)
+        notebook.pack(expand=True, fill='both')
+        
+        # 常规选项卡
+        general_frame = ttk.Frame(notebook)
+        notebook.add(general_frame, text='常规')
         
         auto_fetch_var = tk.BooleanVar(value=self.config.getboolean('PREFERENCES', 'AutoFetch', fallback=False))
-        folder_path_var = tk.StringVar(value=self.config.get('PREFERENCES', 'FolderPath', fallback=''))
+        ttk.Checkbutton(general_frame, text="自动获取文件夹 Blender 版本列表", variable=auto_fetch_var).pack(anchor='w', padx=10, pady=5)
+        
+        # 主题选项卡
+        theme_frame = ttk.Frame(notebook)
+        notebook.add(theme_frame, text='主题')
+        
+        use_win32_var = tk.BooleanVar(value=False)
+        theme_var = tk.StringVar(value=self.config.get('PREFERENCES', 'Theme', fallback='default'))
+        themes = ['default', 'clam', 'alt', 'classic', 'win7', 'win10', 'win11']
+        
+        ttk.Checkbutton(theme_frame, text="使用Win32默认窗口", variable=use_win32_var, command=lambda: self.toggle_theme_options(theme_menu, use_win32_var)).pack(anchor='w', padx=10, pady=5)
+        
+        ttk.Label(theme_frame, text="选择主题:").pack(anchor='w', padx=10, pady=5)
+        theme_menu = ttk.OptionMenu(theme_frame, theme_var, theme_var.get(), *themes)
+        theme_menu.pack(anchor='w', padx=10, pady=5)
+        
+        def apply_theme():
+            if use_win32_var.get():
+                self.style.theme_use('winnative')
+            else:
+                self.apply_theme(theme_var.get())
+        
+        ttk.Button(theme_frame, text="应用主题", command=apply_theme).pack(pady=10)
+        
+        # 下载选项卡
+        download_frame = ttk.Frame(notebook)
+        notebook.add(download_frame, text='下载')
+        
         source_url_var = tk.StringVar(value=self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/'))
+        thread_count_var = tk.IntVar(value=self.config.getint('PREFERENCES', 'ThreadCount', fallback=4))
         
-        tk.Checkbutton(pref_window, text="自动获取文件夹 Blender 版本列表", variable=auto_fetch_var).pack(anchor='w', padx=10, pady=5)
-        
-        tk.Label(pref_window, text="Blender 版本列表文件夹路径:").pack(anchor='w', padx=10, pady=5)
-        entry = tk.Entry(pref_window, textvariable=folder_path_var, width=50)
-        entry.pack(anchor='w', padx=10, pady=5)
-        
-        tk.Label(pref_window, text="Blender 版本源 URL:").pack(anchor='w', padx=10, pady=5)
-        source_entry = tk.Entry(pref_window, textvariable=source_url_var, width=50)
+        ttk.Label(download_frame, text="Blender 版本源 URL:").pack(anchor='w', padx=10, pady=5)
+        source_entry = ttk.Entry(download_frame, textvariable=source_url_var, width=50)
         source_entry.pack(anchor='w', padx=10, pady=5)
+        
+        ttk.Label(download_frame, text="下载线程数量:").pack(anchor='w', padx=10, pady=5)
+        thread_entry = ttk.Entry(download_frame, textvariable=thread_count_var, width=10)
+        thread_entry.pack(anchor='w', padx=10, pady=5)
+        
+        # 文件管理选项卡
+        file_management_frame = ttk.Frame(notebook)
+        notebook.add(file_management_frame, text='文件管理')
+        
+        folder_path_var = tk.StringVar(value=self.config.get('PREFERENCES', 'FolderPath', fallback=''))
+        
+        ttk.Label(file_management_frame, text="Blender 版本列表文件夹路径:").pack(anchor='w', padx=10, pady=5)
+        entry = ttk.Entry(file_management_frame, textvariable=folder_path_var, width=50)
+        entry.pack(anchor='w', padx=10, pady=5)
         
         def browse_folder():
             selected_folder = filedialog.askdirectory(title="选择 Blender 版本列表文件夹")
             if selected_folder:
                 folder_path_var.set(selected_folder)
         
-        tk.Button(pref_window, text="浏览", command=browse_folder).pack(anchor='w', padx=10, pady=5)
+        ttk.Button(file_management_frame, text="浏览", command=browse_folder).pack(anchor='w', padx=10, pady=5)
         
         def save_preferences():
             if 'PREFERENCES' not in self.config:
@@ -85,11 +137,38 @@ class BlenderVersionManager:
             self.config['PREFERENCES']['AutoFetch'] = str(auto_fetch_var.get())
             self.config['PREFERENCES']['FolderPath'] = folder_path_var.get()
             self.config['PREFERENCES']['SourceURL'] = source_url_var.get()
+            self.config['PREFERENCES']['ThreadCount'] = str(thread_count_var.get())
+            self.config['PREFERENCES']['Theme'] = theme_var.get() if not use_win32_var.get() else 'winnative'
             self.save_config()
             self.populate_versions()
             pref_window.destroy()
         
-        tk.Button(pref_window, text="保存", command=save_preferences).pack(pady=10)
+        ttk.Button(pref_window, text="保存", command=save_preferences).pack(pady=10)
+    
+    def toggle_theme_options(self, theme_menu, use_win32_var):
+        if use_win32_var.get():
+            theme_menu.config(state='disabled')
+        else:
+            theme_menu.config(state='normal')
+    
+    def apply_theme(self, theme_name):
+        if theme_name == 'winnative':
+            self.style.theme_use('winnative')
+        elif theme_name in ['win7', 'win10', 'win11']:
+            self.customize_windows_theme(theme_name)
+        else:
+            self.style.theme_use(theme_name)
+    
+    def customize_windows_theme(self, theme_name):
+        if theme_name == 'win7':
+            self.style.configure("TButton", background="#F0F0F0", foreground="#000000", font=("宋体", 10))
+            self.style.configure("TLabel", background="#F0F0F0", foreground="#000000", font=("宋体", 10))
+        elif theme_name == 'win10':
+            self.style.configure("TButton", background="#FFFFFF", foreground="#000000", font=("Microsoft YaHei UI", 10))
+            self.style.configure("TLabel", background="#FFFFFF", foreground="#000000", font=("Microsoft YaHei UI", 10))
+        elif theme_name == 'win11':
+            self.style.configure("TButton", background="#F3F3F3", foreground="#000000", font=("Microsoft YaHei UI", 10))
+            self.style.configure("TLabel", background="#F3F3F3", foreground="#000000", font=("Microsoft YaHei UI", 10))
     
     def load_config(self):
         if os.path.exists(self.config_file):
@@ -100,7 +179,9 @@ class BlenderVersionManager:
             self.config['PREFERENCES'] = {
                 'AutoFetch': 'False',
                 'FolderPath': '',
-                'SourceURL': 'https://mirrors.aliyun.com/blender/release/'
+                'SourceURL': 'https://mirrors.aliyun.com/blender/release/',
+                'ThreadCount': '4',
+                'Theme': 'default'
             }
         self.save_config()
     
@@ -119,10 +200,10 @@ class BlenderVersionManager:
                         version_name = item
                         self.config['VERSIONS'][version_name] = os.path.join(item_path, 'blender.exe')
                         self.save_config()
-                        self.tree.insert("", "end", iid=version_name, text=version_name)
-        for version_name in self.config['VERSIONS']:
+                        self.tree.insert("", "end", values=(version_name, item_path))
+        for version_name, path in self.config['VERSIONS'].items():
             if not self.tree.exists(version_name):
-                self.tree.insert("", "end", iid=version_name, text=version_name)
+                self.tree.insert("", "end", values=(version_name, path))
     
     def add_blender_version(self):
         file_path = filedialog.askopenfilename(title="选择 Blender 可执行文件", filetypes=[("Executable Files", "*.exe")])
@@ -140,7 +221,7 @@ class BlenderVersionManager:
     def edit_blender_version(self):
         selected_item = self.tree.selection()
         if selected_item:
-            selected_version = selected_item[0]
+            selected_version = self.tree.item(selected_item, "values")[0]
             new_name = simpledialog.askstring("编辑名称", f"当前名称: {selected_version}\n输入新名称:", initialvalue=selected_version)
             if new_name:
                 new_path = filedialog.askopenfilename(title="选择新的 Blender 可执行文件", filetypes=[("Executable Files", "*.exe")], initialdir=os.path.dirname(self.config['VERSIONS'][selected_version]))
@@ -159,7 +240,7 @@ class BlenderVersionManager:
     def delete_blender_version(self):
         selected_item = self.tree.selection()
         if selected_item:
-            selected_version = selected_item[0]
+            selected_version = self.tree.item(selected_item, "values")[0]
             confirm = messagebox.askyesno("确认删除", f"确定要删除 {selected_version} 吗？")
             if confirm:
                 del self.config['VERSIONS'][selected_version]
@@ -193,7 +274,7 @@ class BlenderVersionManager:
             version_window.destroy()
             self.select_minor_version(major_version)
         
-        tk.Button(version_window, text="选择", command=select_major_version).pack(pady=10)
+        ttk.Button(version_window, text="选择", command=select_major_version).pack(pady=10)
     
     def select_minor_version(self, major_version):
         minor_versions = self.get_minor_versions(major_version)
@@ -221,11 +302,12 @@ class BlenderVersionManager:
             # 使用线程来处理下载
             threading.Thread(target=self.download_selected_version, args=(major_version, minor_version)).start()
         
-        tk.Button(version_window, text="选择", command=select_minor_version).pack(pady=10)
+        ttk.Button(version_window, text="选择", command=select_minor_version).pack(pady=10)
     
     def download_selected_version(self, major_version, minor_version):
         folder_path = self.config.get('PREFERENCES', 'FolderPath', fallback='')
         source_url = self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/')
+        thread_count = self.config.getint('PREFERENCES', 'ThreadCount', fallback=4)
         if not os.path.exists(folder_path):
             messagebox.showerror("错误", "请先设置有效的 Blender 版本列表文件夹路径。")
             return
@@ -238,40 +320,76 @@ class BlenderVersionManager:
         progress_window = tk.Toplevel(self.root)
         progress_window.title("下载进度")
         
-        progress_label = tk.Label(progress_window, text="下载中...")
+        progress_label = ttk.Label(progress_window, text="下载中...")
         progress_label.pack(pady=10)
         
         progress_bar = ttk.Progressbar(progress_window, orient="horizontal", length=300, mode="determinate")
         progress_bar.pack(pady=10)
         
-        speed_label = tk.Label(progress_window, text="速度: 0 KB/s")
+        percentage_label = ttk.Label(progress_window, text="0%")
+        percentage_label.pack(pady=5)
+        
+        total_size_label = ttk.Label(progress_window, text="文件大小: 0 MB")
+        total_size_label.pack(pady=5)
+        
+        speed_label = ttk.Label(progress_window, text="速度: 0 KB/s")
         speed_label.pack(pady=5)
         
-        downloaded_label = tk.Label(progress_window, text="已下载: 0 MB")
+        downloaded_label = ttk.Label(progress_window, text="已下载: 0 MB")
         downloaded_label.pack(pady=5)
         
+        thread_progress_frame = ttk.Frame(progress_window)
+        thread_progress_frame.pack(pady=10)
+        
+        thread_progress_labels = []
+        for i in range(thread_count):
+            label = ttk.Label(thread_progress_frame, text=f"线程 {i+1}: 0 MB")
+            label.pack(anchor='w')
+            thread_progress_labels.append(label)
+        
         try:
-            response = requests.get(url, stream=True)
+            response = requests.head(url)
             response.raise_for_status()
-            
             total_size = int(response.headers.get('content-length', 0))
             block_size = 1024
             progress_bar["maximum"] = total_size
+            total_size_label.config(text=f"文件大小: {total_size / 1024 / 1024:.2f} MB")
             
             zip_path = os.path.join(folder_path, minor_version)
             start_time = time.time()
             downloaded_size = 0
+            thread_downloaded_sizes = [0] * thread_count
             
-            with open(zip_path, 'wb') as file:
-                for data in response.iter_content(block_size):
+            def download_chunk(start, end, file, thread_index):
+                headers = {'Range': f'bytes={start}-{end}'}
+                chunk_response = requests.get(url, headers=headers, stream=True)
+                chunk_response.raise_for_status()
+                for data in chunk_response.iter_content(block_size):
+                    file.seek(start)
                     file.write(data)
+                    nonlocal downloaded_size
                     downloaded_size += len(data)
+                    thread_downloaded_sizes[thread_index] += len(data)
                     progress_bar["value"] = downloaded_size
+                    percentage = (downloaded_size / total_size) * 100
+                    percentage_label.config(text=f"{percentage:.2f}%")
                     elapsed_time = time.time() - start_time
                     speed = downloaded_size / 1024 / elapsed_time if elapsed_time > 0 else 0
                     speed_label.config(text=f"速度: {speed:.2f} KB/s")
                     downloaded_label.config(text=f"已下载: {downloaded_size / 1024 / 1024:.2f} MB")
+                    thread_progress_labels[thread_index].config(text=f"线程 {thread_index+1}: {thread_downloaded_sizes[thread_index] / 1024 / 1024:.2f} MB")
                     progress_window.update_idletasks()
+            
+            with open(zip_path, 'wb') as file:
+                file.truncate(total_size)
+                chunk_size = total_size // thread_count  # 使用自定义线程数量
+                with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                    futures = [
+                        executor.submit(download_chunk, i, min(i + chunk_size, total_size) - 1, file, index)
+                        for index, i in enumerate(range(0, total_size, chunk_size))
+                    ]
+                    for future in futures:
+                        future.result()
             
             with zipfile.ZipFile(zip_path, 'r') as z:
                 extract_path = os.path.join(folder_path, f"Blender {minor_version.split('-')[1]}")
@@ -324,7 +442,7 @@ class BlenderVersionManager:
     def launch_blender(self):
         selected_item = self.tree.selection()
         if selected_item:
-            selected_version = selected_item[0]
+            selected_version = self.tree.item(selected_item, "values")[0]
             blender_exe = self.config['VERSIONS'].get(selected_version)
             print(f"尝试启动: {blender_exe}")  # 调试信息
             if blender_exe and os.path.exists(blender_exe):
@@ -339,7 +457,8 @@ class BlenderVersionManager:
         with open(log_file, "w") as log:
             process = subprocess.Popen([blender_exe], stdout=log, stderr=log)
             process.wait()
-            
+        messagebox.showinfo("信息", f"Blender 已启动。日志记录在 {log_file}")
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = BlenderVersionManager(root)
