@@ -11,7 +11,6 @@ import shutil
 import time
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import ThreadPoolExecutor
 
 class BlenderVersionManager(wx.Frame):
     def __init__(self, parent, title):
@@ -21,47 +20,77 @@ class BlenderVersionManager(wx.Frame):
         self.config = configparser.ConfigParser()
         self.load_config()
         
-        self.style = ttk.Style()
-        self.apply_theme(self.config.get('PREFERENCES', 'Theme', fallback='default'))
+        # 设置窗口图标
+        self.SetIcon(wx.Icon("Blender-VMT [256x256].ico", wx.BITMAP_TYPE_ICO))
         
         self.init_ui()
+        self.apply_theme(self.config.get('PREFERENCES', 'Theme', fallback='Light'))  # 应用主题
         self.Centre()
         self.Show()
     
+    def apply_theme(self, theme):
+        if theme == 'Dark':
+            bg_color = wx.Colour(45, 45, 48)
+            fg_color = wx.Colour(255, 255, 255)
+        else:  # Light theme
+            bg_color = wx.Colour(255, 255, 255)
+            fg_color = wx.Colour(0, 0, 0)
+        
+        self.SetBackgroundColour(bg_color)
+        self.SetForegroundColour(fg_color)
+        
+        # 更新所有子控件的颜色
+        for child in self.GetChildren():
+            child.SetBackgroundColour(bg_color)
+            child.SetForegroundColour(fg_color)
+            if isinstance(child, wx.Panel):
+                for subchild in child.GetChildren():
+                    subchild.SetBackgroundColour(bg_color)
+                    subchild.SetForegroundColour(fg_color)
+        
+        self.Refresh()
+    
     def init_ui(self):
         panel = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        # 垂直排列图标按钮
+        vbox_buttons = wx.BoxSizer(wx.VERTICAL)
+        
+        self.launch_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/launch.png", 36, 36), size=(48, 48))
+        self.launch_button.SetToolTip("启动 Blender")
+        self.launch_button.Bind(wx.EVT_BUTTON, self.launch_blender)
+        vbox_buttons.Add(self.launch_button, 0, wx.BOTTOM, 5)
+        
+        self.add_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/add.png", 36, 36), size=(48, 48))
+        self.add_button.SetToolTip("添加 Blender 版本")
+        self.add_button.Bind(wx.EVT_BUTTON, self.add_blender_version)
+        vbox_buttons.Add(self.add_button, 0, wx.BOTTOM, 5)
+        
+        self.edit_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/edit.png", 40, 40), size=(48, 48)) # 适配视觉大小
+        self.edit_button.SetToolTip("编辑 Blender 版本")
+        self.edit_button.Bind(wx.EVT_BUTTON, self.edit_blender_version)
+        vbox_buttons.Add(self.edit_button, 0, wx.BOTTOM, 5)
+        
+        self.delete_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/delete.png", 36, 36), size=(48, 48))
+        self.delete_button.SetToolTip("删除 Blender 版本")
+        self.delete_button.Bind(wx.EVT_BUTTON, self.delete_blender_version)
+        vbox_buttons.Add(self.delete_button, 0, wx.BOTTOM, 5)
+        
+        self.download_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/download.png", 36, 36), size=(48, 48))
+        self.download_button.SetToolTip("下载 Blender 版本")
+        self.download_button.Bind(wx.EVT_BUTTON, self.download_blender_version)
+        vbox_buttons.Add(self.download_button, 0, wx.BOTTOM, 5)
+        
+        # 水平排列按钮和选择列表
+        hbox_main = wx.BoxSizer(wx.HORIZONTAL)
+        hbox_main.Add(vbox_buttons, 0, wx.ALL, 10)
         
         self.version_list = wx.ListCtrl(panel, style=wx.LC_REPORT)
         self.version_list.InsertColumn(0, 'Blender 版本', width=150)
         self.version_list.InsertColumn(1, '路径', width=400)
-        vbox.Add(self.version_list, 1, wx.EXPAND | wx.ALL, 10)
+        hbox_main.Add(self.version_list, 1, wx.EXPAND | wx.ALL, 10)
         
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.launch_button = wx.Button(panel, label='启动 Blender')
-        self.launch_button.Bind(wx.EVT_BUTTON, self.launch_blender)
-        hbox.Add(self.launch_button, 0, wx.RIGHT, 5)
-        
-        self.add_button = wx.Button(panel, label='添加 Blender 版本')
-        self.add_button.Bind(wx.EVT_BUTTON, self.add_blender_version)
-        hbox.Add(self.add_button, 0, wx.RIGHT, 5)
-        
-        self.edit_button = wx.Button(panel, label='编辑 Blender 版本')
-        self.edit_button.Bind(wx.EVT_BUTTON, self.edit_blender_version)
-        hbox.Add(self.edit_button, 0, wx.RIGHT, 5)
-        
-        self.delete_button = wx.Button(panel, label='删除 Blender 版本')
-        self.delete_button.Bind(wx.EVT_BUTTON, self.delete_blender_version)
-        hbox.Add(self.delete_button, 0, wx.RIGHT, 5)
-        
-        self.download_button = wx.Button(panel, label='下载 Blender 版本')
-        self.download_button.Bind(wx.EVT_BUTTON, self.download_blender_version)
-        hbox.Add(self.download_button, 0, wx.RIGHT, 5)
-        
-        vbox.Add(hbox, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-        
-        panel.SetSizer(vbox)
+        panel.SetSizer(hbox_main)
         
         self.create_menu_bar()
         self.populate_versions()
@@ -152,19 +181,18 @@ class BlenderVersionManager(wx.Frame):
         selected_item = self.version_list.GetFirstSelected()
         if selected_item != -1:
             selected_version = self.version_list.GetItemText(selected_item)
-            new_name = wx.GetTextFromUser(f"当前名称: {selected_version}\n输入新名称:", "编辑名称", default_value=selected_version)
-            if new_name:
-                with wx.FileDialog(self, "选择新的 Blender 可执行文件", wildcard="Executable files (*.exe)|*.exe",
-                                   style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
-                    if fileDialog.ShowModal() == wx.ID_CANCEL:
-                        return
-                    new_path = fileDialog.GetPath()
+            current_path = self.config['VERSIONS'][selected_version]
+            
+            # 创建并显示编辑对话框
+            edit_dialog = EditVersionDialog(self, "编辑 Blender 版本", selected_version, current_path)
+            if edit_dialog.ShowModal() == wx.ID_OK:
+                new_name, new_path = edit_dialog.get_version_info()
+                if new_name and new_path:
                     del self.config['VERSIONS'][selected_version]
                     self.config['VERSIONS'][new_name] = new_path
                     self.save_config()
                     self.populate_versions()
-            else:
-                wx.MessageBox("名称不能为空。", "警告", wx.ICON_WARNING)
+            edit_dialog.Destroy()
         else:
             wx.MessageBox("请选择一个 Blender 版本。", "警告", wx.ICON_WARNING)
     
@@ -205,7 +233,6 @@ class BlenderVersionManager(wx.Frame):
     def download_selected_version(self, major_version, minor_version):
         folder_path = self.config.get('PREFERENCES', 'FolderPath', fallback='')
         source_url = self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/')
-        thread_count = self.config.getint('PREFERENCES', 'ThreadCount', fallback=4)
         thread_count = self.config.getint('PREFERENCES', 'ThreadCount', fallback=4)
         if not os.path.exists(folder_path):
             wx.MessageBox("请先设置有效的 Blender 版本列表文件夹路径。", "错误", wx.ICON_ERROR)
@@ -304,6 +331,22 @@ class BlenderVersionManager(wx.Frame):
             process = subprocess.Popen([blender_exe], stdout=log, stderr=log)
             process.wait()
         wx.CallAfter(wx.MessageBox, f"Blender 已启动。日志记录在 {log_file}", "信息", wx.ICON_INFORMATION)
+    
+    def scale_bitmap(self, image_path, target_width, target_height):
+        image = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+        original_width, original_height = image.GetSize()
+        
+        # 计算缩放比例
+        width_ratio = target_width / original_width
+        height_ratio = target_height / original_height
+        scale_ratio = min(width_ratio, height_ratio)
+        
+        # 根据最小比例缩放图像
+        new_width = int(original_width * scale_ratio)
+        new_height = int(original_height * scale_ratio)
+        
+        image = image.Scale(new_width, new_height, wx.IMAGE_QUALITY_HIGH)
+        return wx.Bitmap(image)
 
 class PreferencesDialog(wx.Dialog):
     def __init__(self, parent, title, config):
@@ -322,8 +365,13 @@ class PreferencesDialog(wx.Dialog):
         auto_fetch_var = wx.CheckBox(general_panel, label="自动获取文件夹 Blender 版本列表")
         auto_fetch_var.SetValue(self.config.getboolean('PREFERENCES', 'AutoFetch', fallback=False))
         
+        theme_choice = wx.Choice(general_panel, choices=["Light", "Dark"])
+        theme_choice.SetStringSelection(self.config.get('PREFERENCES', 'Theme', fallback='Light'))
+        
         general_sizer = wx.BoxSizer(wx.VERTICAL)
         general_sizer.Add(auto_fetch_var, 0, wx.ALL, 10)
+        general_sizer.Add(wx.StaticText(general_panel, label="主题选择:"), 0, wx.ALL, 10)
+        general_sizer.Add(theme_choice, 0, wx.ALL, 10)
         general_panel.SetSizer(general_sizer)
         
         # 下载选项卡
@@ -336,7 +384,7 @@ class PreferencesDialog(wx.Dialog):
         download_sizer = wx.BoxSizer(wx.VERTICAL)
         download_sizer.Add(wx.StaticText(download_panel, label="Blender 版本源 URL:"), 0, wx.ALL, 10)
         download_sizer.Add(source_url_var, 0, wx.ALL | wx.EXPAND, 10)
-        download_sizer.Add(wx.StaticText(download_panel, label="下载线程数��:"), 0, wx.ALL, 10)
+        download_sizer.Add(wx.StaticText(download_panel, label="下载线程数:"), 0, wx.ALL, 10)
         download_sizer.Add(thread_count_var, 0, wx.ALL, 10)
         download_panel.SetSizer(download_sizer)
         
@@ -356,7 +404,7 @@ class PreferencesDialog(wx.Dialog):
         
         # 确认按钮
         save_button = wx.Button(self, label="保存")
-        save_button.Bind(wx.EVT_BUTTON, lambda event: self.save_preferences(auto_fetch_var, source_url_var, thread_count_var, folder_path_var))
+        save_button.Bind(wx.EVT_BUTTON, lambda event: self.save_preferences(auto_fetch_var, source_url_var, thread_count_var, folder_path_var, theme_choice))
         
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(notebook, 1, wx.EXPAND | wx.ALL, 10)
@@ -370,12 +418,55 @@ class PreferencesDialog(wx.Dialog):
                 return
             folder_path_var.SetValue(dirDialog.GetPath())
     
-    def save_preferences(self, auto_fetch_var, source_url_var, thread_count_var, folder_path_var):
+    def save_preferences(self, auto_fetch_var, source_url_var, thread_count_var, folder_path_var, theme_choice):
         self.config['PREFERENCES']['AutoFetch'] = str(auto_fetch_var.GetValue())
         self.config['PREFERENCES']['SourceURL'] = source_url_var.GetValue()
         self.config['PREFERENCES']['ThreadCount'] = str(thread_count_var.GetValue())
         self.config['PREFERENCES']['FolderPath'] = folder_path_var.GetValue()
+        self.config['PREFERENCES']['Theme'] = theme_choice.GetStringSelection()
+        
+        # 立即应用主题
+        self.GetParent().apply_theme(theme_choice.GetStringSelection())
+        
         self.EndModal(wx.ID_OK)
+
+class EditVersionDialog(wx.Dialog):
+    def __init__(self, parent, title, version_name, version_path):
+        super(EditVersionDialog, self).__init__(parent, title=title, size=(400, 200))
+        
+        self.version_name = version_name
+        self.version_path = version_path
+        
+        self.init_ui()
+    
+    def init_ui(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        # 版本名称输入
+        name_label = wx.StaticText(self, label="版本名称:")
+        self.name_text = wx.TextCtrl(self, value=self.version_name)
+        vbox.Add(name_label, 0, wx.ALL, 5)
+        vbox.Add(self.name_text, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # 版本路径输入
+        path_label = wx.StaticText(self, label="版本路径:")
+        self.path_text = wx.TextCtrl(self, value=self.version_path)
+        vbox.Add(path_label, 0, wx.ALL, 5)
+        vbox.Add(self.path_text, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # 确认和取消按钮
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        ok_button = wx.Button(self, wx.ID_OK, label="确认")
+        cancel_button = wx.Button(self, wx.ID_CANCEL, label="取消")
+        hbox.Add(ok_button, 0, wx.ALL, 5)
+        hbox.Add(cancel_button, 0, wx.ALL, 5)
+        
+        vbox.Add(hbox, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        
+        self.SetSizer(vbox)
+    
+    def get_version_info(self):
+        return self.name_text.GetValue(), self.path_text.GetValue()
 
 if __name__ == "__main__":
     app = wx.App(False)
