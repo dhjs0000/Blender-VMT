@@ -1,0 +1,205 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en_US\n"
+
+msgid "Blender 版本管理器"
+msgstr "Blender Version Manager"
+
+msgid "一个用于管理 Blender 版本的工具。\n\n本软件完全免费开源、禁止在没有许可的情况下商用。"
+msgstr "A tool for managing Blender versions.\n\nThis software is completely free and open source, and commercial use is prohibited without permission."
+
+msgid "启动 Blender"
+msgstr "Launch Blender"
+
+msgid "添加 Blender 版本"
+msgstr "Add Blender Version"
+
+msgid "编辑 Blender 版本"
+msgstr "Edit Blender Version"
+
+msgid "删除 Blender 版本"
+msgstr "Delete Blender Version"
+
+msgid "下载 Blender 版本"
+msgstr "Download Blender Version"
+
+msgid "偏好设置"
+msgstr "Preferences"
+
+msgid "关于"
+msgstr "About"
+
+msgid "&文件"
+msgstr "&File"
+
+msgid "&语言"
+msgstr "&Language"
+
+msgid "&帮助"
+msgstr "&Help"
+
+msgid "选择 Blender 可执行文件"
+msgstr "Select Blender Executable"
+
+msgid "Executable files (*.exe)|*.exe"
+msgstr "Executable files (*.exe)|*.exe"
+
+msgid "为此 Blender 版本输入一个名称:"
+msgstr "Enter a name for this Blender version:"
+
+msgid "输入名称"
+msgstr "Enter Name"
+
+msgid "名称不能为空。"
+msgstr "Name cannot be empty."
+
+msgid "警告"
+msgstr "Warning"
+
+msgid "请选择一个 Blender 版本。"
+msgstr "Please select a Blender version."
+
+msgid "确认删除"
+msgstr "Confirm Deletion"
+
+msgid "确定要删除 {0} 吗？"
+msgstr "Are you sure you want to delete {0}?"
+
+msgid "无法获取可用的 Blender 版本列表。"
+msgstr "Unable to retrieve the list of available Blender versions."
+
+msgid "错误"
+msgstr "Error"
+
+msgid "选择大版本"
+msgstr "Select Major Version"
+
+msgid "选择小版本"
+msgstr "Select Minor Version"
+
+msgid "请先设置有效的 Blender 版本列表文件夹路径。"
+msgstr "Please set a valid folder path for the Blender version list first."
+
+msgid "下载进度"
+msgstr "Download Progress"
+
+msgid "正在下载..."
+msgstr "Downloading..."
+
+msgid "已下载: {0:.2f} MB"
+msgstr "Downloaded: {0:.2f} MB"
+
+msgid "下载不完整，文件大小不匹配。"
+msgstr "Download incomplete, file size does not match."
+
+msgid "下载并解压成功。"
+msgstr "Download and extraction successful."
+
+msgid "下载错误"
+msgstr "Download Error"
+
+msgid "解压错误"
+msgstr "Extraction Error"
+
+msgid "获取到的大版本列表: {0}"
+msgstr "Retrieved major version list: {0}"
+
+msgid "获取版本列表失败：{0}"
+msgstr "Failed to retrieve version list: {0}"
+
+msgid "获取到的小版本列表: {0}"
+msgstr "Retrieved minor version list: {0}"
+
+msgid "获取小版本列表失败：{0}"
+msgstr "Failed to retrieve minor version list: {0}"
+
+msgid "找不到 {0} 的可执行文件。"
+msgstr "Executable file for {0} not found."
+
+msgid "Blender 已启动。日志记录在 {0}"
+msgstr "Blender has started. Log recorded at {0}"
+
+msgid "信息"
+msgstr "Information"
+
+msgid "常规"
+msgstr "General"
+
+msgid "自动获取文件夹 Blender 版本列表"
+msgstr "Automatically fetch Blender version list from folder"
+
+msgid "Light"
+msgstr "Light"
+
+msgid "Dark"
+msgstr "Dark"
+
+msgid "主题选择(实验性):"
+msgstr "Theme Selection (Experimental):"
+
+msgid "下载"
+msgstr "Download"
+
+msgid "Blender 版本源 URL:"
+msgstr "Blender Version Source URL:"
+
+msgid "下载线程数(实验性 概率卡死):"
+msgstr "Download Threads (Experimental, may freeze):"
+
+msgid "文件管理"
+msgstr "File Management"
+
+msgid "浏览"
+msgstr "Browse"
+
+msgid "Blender 版本列表文件夹路径:"
+msgstr "Blender Version List Folder Path:"
+
+msgid "保存"
+msgstr "Save"
+
+msgid "选择 Blender 版本列表文件夹"
+msgstr "Select Blender Version List Folder"
+
+msgid "中文"
+msgstr "中文"
+
+msgid "English"
+msgstr "English"
+
+msgid "Blender 版本"
+msgstr "Blender Version"
+
+msgid "路径"
+msgstr "Path"
+
+msgid "导入配置"
+msgstr "Import Config"
+
+msgid "导出配置"
+msgstr "Export Config"
+
+msgid "选择配置文件"
+msgstr "Select Config File"
+
+msgid "配置文件导入成功。"
+msgstr "Config file imported successfully."
+
+msgid "配置文件导出成功。"
+msgstr "Config file exported successfully."
+
+msgid "配置文件导入失败。"
+msgstr "Config file import failed."
+
+msgid "配置文件导出失败。"
+msgstr "Config file export failed."
+
+msgid "配置文件"
+msgstr "Config File"
+
+msgid "一个用于管理 Blender 版本的工具。\n\n本软件完全免费开源、禁止在没有许可的情况下商用。"
+msgstr "A tool for managing Blender versions.\n\nThis software is completely free and open source, and commercial use is prohibited without permission."
+
+msgid "Blender 版本管理器"
+msgstr "Blender Version Manager"
