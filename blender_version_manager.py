@@ -12,23 +12,36 @@ import time
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
+# 常量定义
+CONFIG_FILE = "config.ini"
+ICON_PATH = "Blender-VMT [256x256].ico"
+ICON_TYPE = wx.BITMAP_TYPE_ICO
+DEFAULT_THEME = 'Light'
+SOURCE_URL = 'https://mirrors.aliyun.com/blender/release/'
+VERSION_MANAGER_NAME = "Blender 版本管理器"
+VERSION_MANAGER_VERSION = "v0.1.3"
+VERSION_MANAGER_DESCRIPTION = "一个用于管理 Blender 版本的工具。\n\n本软件完全免费开源、禁止在没有许可的情况下商用。"
+VERSION_MANAGER_COPYRIGHT = "(C) 2024 dhjs0000"
+VERSION_MANAGER_WEBSITE = "https://space.bilibili.com/430218185"
+
 class BlenderVersionManager(wx.Frame):
     def __init__(self, parent, title):
         super(BlenderVersionManager, self).__init__(parent, title=title, size=(600, 400))
         
-        self.config_file = "config.ini"
+        self.config_file = CONFIG_FILE
         self.config = configparser.ConfigParser()
         self.load_config()
         
         # 设置窗口图标
-        self.SetIcon(wx.Icon("Blender-VMT [256x256].ico", wx.BITMAP_TYPE_ICO))
+        self.SetIcon(wx.Icon(ICON_PATH, ICON_TYPE))
         
         self.init_ui()
-        self.apply_theme(self.config.get('PREFERENCES', 'Theme', fallback='Light'))  # 应用主题
+        self.apply_theme(self.config.get('PREFERENCES', 'Theme', fallback=DEFAULT_THEME))  # 应用主题
         self.Centre()
         self.Show()
     
     def apply_theme(self, theme):
+        # 根据主题设置背景和前景颜色
         if theme == 'Dark':
             bg_color = wx.Colour(45, 45, 48)
             fg_color = wx.Colour(255, 255, 255)
@@ -56,6 +69,7 @@ class BlenderVersionManager(wx.Frame):
         # 垂直排列图标按钮
         vbox_buttons = wx.BoxSizer(wx.VERTICAL)
         
+        # 创建并绑定按钮
         self.launch_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/launch.png", 36, 36), size=(48, 48))
         self.launch_button.SetToolTip("启动 Blender")
         self.launch_button.Bind(wx.EVT_BUTTON, self.launch_blender)
@@ -66,7 +80,7 @@ class BlenderVersionManager(wx.Frame):
         self.add_button.Bind(wx.EVT_BUTTON, self.add_blender_version)
         vbox_buttons.Add(self.add_button, 0, wx.BOTTOM, 5)
         
-        self.edit_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/edit.png", 40, 40), size=(48, 48)) # 适配视觉大小
+        self.edit_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/edit.png", 36, 36), size=(48, 48))
         self.edit_button.SetToolTip("编辑 Blender 版本")
         self.edit_button.Bind(wx.EVT_BUTTON, self.edit_blender_version)
         vbox_buttons.Add(self.edit_button, 0, wx.BOTTOM, 5)
@@ -85,6 +99,7 @@ class BlenderVersionManager(wx.Frame):
         hbox_main = wx.BoxSizer(wx.HORIZONTAL)
         hbox_main.Add(vbox_buttons, 0, wx.ALL, 10)
         
+        # 创建版本列表
         self.version_list = wx.ListCtrl(panel, style=wx.LC_REPORT)
         self.version_list.InsertColumn(0, 'Blender 版本', width=150)
         self.version_list.InsertColumn(1, '路径', width=400)
@@ -96,6 +111,7 @@ class BlenderVersionManager(wx.Frame):
         self.populate_versions()
     
     def create_menu_bar(self):
+        # 创建菜单栏
         menubar = wx.MenuBar()
         
         file_menu = wx.Menu()
@@ -112,21 +128,24 @@ class BlenderVersionManager(wx.Frame):
         self.SetMenuBar(menubar)
     
     def show_about_dialog(self, event):
+        # 显示关于对话框
         info = wx.adv.AboutDialogInfo()
-        info.SetName("Blender 版本管理器")
-        info.SetVersion("1.0")
-        info.SetDescription("一个用于管理 Blender 版本的工具。\n\n本软件完全免费开源、禁止在没有许可的情况下商用。")
-        info.SetCopyright("(C) 2024 dhjs0000")
-        info.SetWebSite("https://space.bilibili.com/430218185")
+        info.SetName(VERSION_MANAGER_NAME)
+        info.SetVersion(VERSION_MANAGER_VERSION)
+        info.SetDescription(VERSION_MANAGER_DESCRIPTION)
+        info.SetCopyright(VERSION_MANAGER_COPYRIGHT)
+        info.SetWebSite(VERSION_MANAGER_WEBSITE)
         wx.adv.AboutBox(info)
     
     def open_preferences(self, event):
+        # 打开偏好设置对话框
         pref_dialog = PreferencesDialog(self, "偏好设置", self.config)
         pref_dialog.ShowModal()
         pref_dialog.Destroy()
         self.populate_versions()
     
     def load_config(self):
+        # 加载配置文件
         if os.path.exists(self.config_file):
             self.config.read(self.config_file)
         if 'VERSIONS' not in self.config:
@@ -135,16 +154,18 @@ class BlenderVersionManager(wx.Frame):
             self.config['PREFERENCES'] = {
                 'AutoFetch': 'False',
                 'FolderPath': '',
-                'SourceURL': 'https://mirrors.aliyun.com/blender/release/',
+                'SourceURL': SOURCE_URL,
                 'ThreadCount': '4'
             }
         self.save_config()
     
     def save_config(self):
+        # 保存配置文件
         with open(self.config_file, 'w') as configfile:
             self.config.write(configfile)
     
     def populate_versions(self):
+        # 填充版本列表
         self.version_list.DeleteAllItems()
         existing_versions = set(self.config['VERSIONS'].keys())
         
@@ -164,6 +185,7 @@ class BlenderVersionManager(wx.Frame):
             self.version_list.SetItem(index, 1, path)
     
     def add_blender_version(self, event):
+        # 添加新的 Blender 版本
         with wx.FileDialog(self, "选择 Blender 可执行文件", wildcard="Executable files (*.exe)|*.exe",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -178,6 +200,7 @@ class BlenderVersionManager(wx.Frame):
                 wx.MessageBox("名称不能为空。", "警告", wx.ICON_WARNING)
     
     def edit_blender_version(self, event):
+        # 编辑选定的 Blender 版本
         selected_item = self.version_list.GetFirstSelected()
         if selected_item != -1:
             selected_version = self.version_list.GetItemText(selected_item)
@@ -197,6 +220,7 @@ class BlenderVersionManager(wx.Frame):
             wx.MessageBox("请选择一个 Blender 版本。", "警告", wx.ICON_WARNING)
     
     def delete_blender_version(self, event):
+        # 删除选定的 Blender 版本
         selected_item = self.version_list.GetFirstSelected()
         if selected_item != -1:
             selected_version = self.version_list.GetItemText(selected_item)
@@ -209,6 +233,7 @@ class BlenderVersionManager(wx.Frame):
             wx.MessageBox("请选择一个 Blender 版本。", "警告", wx.ICON_WARNING)
     
     def download_blender_version(self, event):
+        # 下载 Blender 版本
         major_versions = self.get_major_versions()
         if not major_versions:
             wx.MessageBox("无法获取可用的 Blender 版本列表。", "错误", wx.ICON_ERROR)
@@ -220,6 +245,7 @@ class BlenderVersionManager(wx.Frame):
             self.select_minor_version(major_version)
     
     def select_minor_version(self, major_version):
+        # 选择小版本
         minor_versions = self.get_minor_versions(major_version)
         if not minor_versions:
             wx.MessageBox(f"无法获取 {major_version} 的小版本列表。", "错误", wx.ICON_ERROR)
@@ -231,8 +257,9 @@ class BlenderVersionManager(wx.Frame):
             wx.CallAfter(self.download_selected_version, major_version, minor_version)
     
     def download_selected_version(self, major_version, minor_version):
+        # 下载选定的 Blender 版本
         folder_path = self.config.get('PREFERENCES', 'FolderPath', fallback='')
-        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/')
+        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback=SOURCE_URL)
         thread_count = self.config.getint('PREFERENCES', 'ThreadCount', fallback=4)
         if not os.path.exists(folder_path):
             wx.MessageBox("请先设置有效的 Blender 版本列表文件夹路径。", "错误", wx.ICON_ERROR)
@@ -288,7 +315,8 @@ class BlenderVersionManager(wx.Frame):
         threading.Thread(target=download).start()
     
     def get_major_versions(self):
-        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/')
+        # 获取大版本列表
+        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback=SOURCE_URL)
         try:
             response = requests.get(source_url)
             response.raise_for_status()
@@ -301,7 +329,8 @@ class BlenderVersionManager(wx.Frame):
             return []
     
     def get_minor_versions(self, major_version):
-        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback='https://mirrors.aliyun.com/blender/release/')
+        # 获取小版本列表
+        source_url = self.config.get('PREFERENCES', 'SourceURL', fallback=SOURCE_URL)
         try:
             response = requests.get(f"{source_url}/{major_version}/")
             response.raise_for_status()
@@ -314,6 +343,7 @@ class BlenderVersionManager(wx.Frame):
             return []
     
     def launch_blender(self, event):
+        # 启动选定的 Blender 版本
         selected_item = self.version_list.GetFirstSelected()
         if selected_item != -1:
             selected_version = self.version_list.GetItemText(selected_item)
@@ -326,6 +356,7 @@ class BlenderVersionManager(wx.Frame):
             wx.MessageBox("请选择一个 Blender 版本。", "警告", wx.ICON_WARNING)
     
     def run_blender_with_logging(self, blender_exe):
+        # 运行 Blender 并记录日志
         log_file = os.path.join(os.path.dirname(blender_exe), "blender_log.txt")
         with open(log_file, "w") as log:
             process = subprocess.Popen([blender_exe], stdout=log, stderr=log)
@@ -333,6 +364,7 @@ class BlenderVersionManager(wx.Frame):
         wx.CallAfter(wx.MessageBox, f"Blender 已启动。日志记录在 {log_file}", "信息", wx.ICON_INFORMATION)
     
     def scale_bitmap(self, image_path, target_width, target_height):
+        # 缩放图标以适应按钮大小
         image = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
         original_width, original_height = image.GetSize()
         
@@ -370,7 +402,7 @@ class PreferencesDialog(wx.Dialog):
         
         general_sizer = wx.BoxSizer(wx.VERTICAL)
         general_sizer.Add(auto_fetch_var, 0, wx.ALL, 10)
-        general_sizer.Add(wx.StaticText(general_panel, label="主题选择:"), 0, wx.ALL, 10)
+        general_sizer.Add(wx.StaticText(general_panel, label="主题选择(实验性):"), 0, wx.ALL, 10)
         general_sizer.Add(theme_choice, 0, wx.ALL, 10)
         general_panel.SetSizer(general_sizer)
         
@@ -384,7 +416,7 @@ class PreferencesDialog(wx.Dialog):
         download_sizer = wx.BoxSizer(wx.VERTICAL)
         download_sizer.Add(wx.StaticText(download_panel, label="Blender 版本源 URL:"), 0, wx.ALL, 10)
         download_sizer.Add(source_url_var, 0, wx.ALL | wx.EXPAND, 10)
-        download_sizer.Add(wx.StaticText(download_panel, label="下载线程数:"), 0, wx.ALL, 10)
+        download_sizer.Add(wx.StaticText(download_panel, label="下载线程数(实验性 概率卡死):"), 0, wx.ALL, 10)
         download_sizer.Add(thread_count_var, 0, wx.ALL, 10)
         download_panel.SetSizer(download_sizer)
         
@@ -413,12 +445,14 @@ class PreferencesDialog(wx.Dialog):
         self.SetSizer(main_sizer)
     
     def browse_folder(self, folder_path_var):
+        # 浏览文件夹
         with wx.DirDialog(self, "选择 Blender 版本列表文件夹", style=wx.DD_DEFAULT_STYLE) as dirDialog:
             if dirDialog.ShowModal() == wx.ID_CANCEL:
                 return
             folder_path_var.SetValue(dirDialog.GetPath())
     
     def save_preferences(self, auto_fetch_var, source_url_var, thread_count_var, folder_path_var, theme_choice):
+        # 保存偏好设置
         self.config['PREFERENCES']['AutoFetch'] = str(auto_fetch_var.GetValue())
         self.config['PREFERENCES']['SourceURL'] = source_url_var.GetValue()
         self.config['PREFERENCES']['ThreadCount'] = str(thread_count_var.GetValue())
@@ -466,6 +500,7 @@ class EditVersionDialog(wx.Dialog):
         self.SetSizer(vbox)
     
     def get_version_info(self):
+        # 获取版本信息
         return self.name_text.GetValue(), self.path_text.GetValue()
 
 if __name__ == "__main__":
