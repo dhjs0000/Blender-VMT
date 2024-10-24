@@ -203,3 +203,21 @@ msgstr "A tool for managing Blender versions.\n\nThis software is completely fre
 
 msgid "Blender 版本管理器"
 msgstr "Blender Version Manager"
+
+msgid "卸载 Blender 版本"
+msgstr "Uninstall Blender Version"
+
+msgid "查看文件所在位置"
+msgstr "Open File Location"
+
+msgid "确定要卸载 {0} 吗？"
+msgstr "Are you sure you want to uninstall {0}?"
+
+msgid "确认卸载"
+msgstr "Confirm Uninstallation"
+
+msgid "Blender 版本 {0} 已卸载。"
+msgstr "Blender version {0} has been uninstalled."
+
+msgid "找不到 {0} 的安装路径。"
+msgstr "Installation path for {0} not found."
