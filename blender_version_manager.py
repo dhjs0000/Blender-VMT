@@ -37,7 +37,7 @@ ICON_TYPE = wx.BITMAP_TYPE_ICO
 DEFAULT_THEME = 'Light'
 SOURCE_URL = 'https://mirrors.aliyun.com/blender/release/'
 VERSION_MANAGER_NAME = _("Blender 版本管理器")
-VERSION_MANAGER_VERSION = "v0.1.4"
+VERSION_MANAGER_VERSION = "v0.1.45"
 VERSION_MANAGER_DESCRIPTION = _("一个用于管理 Blender 版本的工具。\n\n本软件完全免费开源、禁止在没有许可的情况下商用。")
 VERSION_MANAGER_COPYRIGHT = "(C) 2024 dhjs0000"
 VERSION_MANAGER_WEBSITE = "https://space.bilibili.com/430218185"
@@ -113,6 +113,11 @@ class BlenderVersionManager(wx.Frame):
         self.uninstall_button.Bind(wx.EVT_BUTTON, self.uninstall_blender_version)
         vbox_buttons.Add(self.uninstall_button, 0, wx.BOTTOM, 5)
         
+        self.download_button = wx.BitmapButton(panel, bitmap=self.scale_bitmap("icons/download.png", 36, 36), size=(48, 48))
+        self.download_button.SetToolTip(_("下载 Blender 版本"))
+        self.download_button.Bind(wx.EVT_BUTTON, self.download_blender_version)
+        vbox_buttons.Add(self.download_button, 0, wx.BOTTOM, 5)
+        
         # 水平排列按钮和选择列表
         hbox_main = wx.BoxSizer(wx.HORIZONTAL)
         hbox_main.Add(vbox_buttons, 0, wx.ALL, 10)
@@ -180,7 +185,7 @@ class BlenderVersionManager(wx.Frame):
     
     def open_preferences(self, event):
         # 打开偏好设置对话框
-        pref_dialog = PreferencesDialog(self, _("偏好设置"), self.config)
+        pref_dialog = PreferencesDialog(self, _(""), self.config)
         pref_dialog.ShowModal()
         pref_dialog.Destroy()
         self.populate_versions()
@@ -263,7 +268,7 @@ class BlenderVersionManager(wx.Frame):
                 self.save_config()
                 self.populate_versions()
             else:
-                wx.MessageBox(_("名称不能为空。"), _("警告"), wx.ICON_WARNING)
+                wx.MessageBox(_("名不能为空。"), _("警告"), wx.ICON_WARNING)
     
     def edit_blender_version(self, event):
         # 编辑选定的 Blender 版本
@@ -417,7 +422,7 @@ class BlenderVersionManager(wx.Frame):
             if blender_exe and os.path.exists(blender_exe):
                 threading.Thread(target=self.run_blender_with_logging, args=(blender_exe,)).start()
             else:
-                wx.MessageBox(_("找不到 {0} 的可执行文件。").format(selected_version), _("错误"), wx.ICON_ERROR)
+                wx.MessageBox(_("��不到 {0} 的可执行文件。").format(selected_version), _("错误"), wx.ICON_ERROR)
         else:
             wx.MessageBox(_("请选择一个 Blender 版本。"), _("警告"), wx.ICON_WARNING)
     
@@ -447,7 +452,7 @@ class BlenderVersionManager(wx.Frame):
         return wx.Bitmap(image)
     
     def on_right_click(self, event):
-        # 右键菜单
+        # 右键菜单（在列表项上）
         menu = wx.Menu()
         launch_item = menu.Append(wx.ID_ANY, _("启动 Blender"))
         edit_item = menu.Append(wx.ID_ANY, _("编辑 Blender 版本"))
